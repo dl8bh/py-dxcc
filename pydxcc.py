@@ -5,16 +5,13 @@ import re
 from datetime import datetime
 def pattern_to_regex(pattern):
     """transform pattern from file to regex"""
-    pattern = pattern.replace('  ', ' ').replace('%', '[A-Z]').replace('#', '[0-9]').replace(' ', '$|')
+    pattern = pattern.replace('  ', ' ').replace('%', '[A-Z]').replace('#', '[0-9]').replace(' ', '$|').replace('=', '^')
     if not pattern.endswith('$'):
         pattern += '$'
     return pattern
 
-def init_country_tab(date):
+def init_country_tab():
     """initializes a dict with data from the dxcc-tables from file"""
-    # if date is not given, assume date is now
-    if not date:
-        date = datetime.utcnow()
     date_dxcc_regex = re.compile(r'((?P<from>\d\d\d\d/\d\d/\d\d)*-(?P<to>\d\d\d\d/\d\d/\d\d)*)*(=(?P<alt_dxcc>\d*))*')
     with open("/home/bernhard/.config/cqrlog/dxcc_data/country.tab", "r") as countrytab:
         # split country.tab to list linewise
@@ -28,36 +25,55 @@ def init_country_tab(date):
                 date_dxcc_string = date_dxcc_regex.search(row_list[10])
                 dateto = None
                 datefrom = None
-                # check, if in valid timerange
+                # check, if timerange is (partly) given
                 if date_dxcc_string.group('to'):
                     dateto = datetime.strptime(date_dxcc_string.group('to'), '%Y/%m/%d')
-                    if date > dateto:
-                        indaterange = False
                 if indaterange and date_dxcc_string.group('from'):
-                    print(indaterange)
                     datefrom = datetime.strptime(date_dxcc_string.group('from'), '%Y/%m/%d')
-                    if date < datefrom:
-                        indaterange = False
-                if indaterange:
-                    pattern = row_list[0]
-                    attributes = {
-                        'name' : row_list[1],
-                        'continent' : row_list[2],
-                        'utc_offset' : row_list[3],
-                        'coord_n' : row_list[4],
-                        'coord_e' : row_list[5],
-                        'itu' : row_list[6],
-                        'waz' : row_list[7],
-                        'valid_from' : datefrom,
-                        'valid_to' : dateto,
-                        'alt_dxcc' : date_dxcc_string.group('alt_dxcc')
-                    }
-                    dxcc_list[pattern_to_regex(pattern.strip())] = attributes
+                pattern = row_list[0]
+                attributes = {
+                    'name' : row_list[1],
+                    'continent' : row_list[2],
+                    'utc_offset' : row_list[3],
+                    'coord_n' : row_list[4],
+                    'coord_e' : row_list[5],
+                    'itu' : row_list[6],
+                    'waz' : row_list[7],
+                    'valid_from' : datefrom,
+                    'valid_to' : dateto,
+                    'alt_dxcc' : date_dxcc_string.group('alt_dxcc')
+                }
+                dxcc_list[pattern_to_regex(pattern.strip())] = attributes
     return dxcc_list
 
 
+def call2dxcc(callsign, date):
+    """does the job in resolving the callsign"""
+    # if date is not given, assume date is now
+    if not date:
+        date = datetime.utcnow()
+    for pattern in DXCC_LIST:
+        indaterange = True
+        valid_to = DXCC_LIST[pattern]['valid_to']
+        valid_from = DXCC_LIST[pattern]['valid_from']
+        #print(valid_from)
+        if valid_to is not None:
+            if date > valid_to:
+                indaterange = False
+        if indaterange and not valid_from is None:
+            if date < valid_from:
+                indaterange = False
+        if indaterange:
+            # chech for direct hits
+            if pattern.startswith('^'):
+                if re.match(pattern, callsign):
+                    print("found {} {}".format(pattern, DXCC_LIST[pattern]))
+                    return DXCC_LIST[pattern]
+            # check for regex hits
+            if pattern.startswith(callsign[0]) or pattern.startswith('['):
+                if re.match(pattern, callsign):
+                    print("found {} {}".format(pattern, DXCC_LIST[pattern]))
 
-DXCC_LIST = init_country_tab(None)
-for x in DXCC_LIST:
-    if re.match(x, 'DA0HQ'):
-        print("found {} {}".format(x, DXCC_LIST[x]))
+DXCC_LIST = init_country_tab()
+
+call2dxcc('DL8BH', None)
