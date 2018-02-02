@@ -3,11 +3,15 @@
 import csv
 import re
 from datetime import datetime
+DEBUG = False
+
 def pattern_to_regex(pattern):
     """transform pattern from file to regex"""
-    pattern = pattern.replace('  ', ' ').replace('%', '[A-Z]').replace('#', '[0-9]').replace(' ', '$|').replace('=', '^')
+    pattern = pattern.replace('  ', ' ').replace('%', '[A-Z]').replace('#', '[0-9]').replace(' ', '$|^').replace('=', '')
     if not pattern.endswith('$'):
         pattern += '$'
+    if not pattern[0] == '^':
+        pattern = '^' + pattern
     return pattern
 
 def init_country_tab():
@@ -52,6 +56,8 @@ def call2dxcc(callsign, date):
     # if date is not given, assume date is now
     if not date:
         date = datetime.utcnow()
+    if '/' in callsign:
+        callsign = handleExtendedCalls(callsign)
     for pattern in DXCC_LIST:
         indaterange = True
         valid_to = DXCC_LIST[pattern]['valid_to']
@@ -64,16 +70,39 @@ def call2dxcc(callsign, date):
             if date < valid_from:
                 indaterange = False
         if indaterange:
+            print(pattern)
             # chech for direct hits
             if pattern.startswith('^'):
                 if re.match(pattern, callsign):
-                    print("found {} {}".format(pattern, DXCC_LIST[pattern]))
-                    return DXCC_LIST[pattern]
+                    if DEBUG:
+                        print("found {} {}".format(pattern, DXCC_LIST[pattern]))
+                    return [pattern, DXCC_LIST[pattern]]
             # check for regex hits
             if pattern.startswith(callsign[0]) or pattern.startswith('['):
                 if re.match(pattern, callsign):
-                    print("found {} {}".format(pattern, DXCC_LIST[pattern]))
+                    if DEBUG:
+                        print("found {} {}".format(pattern, DXCC_LIST[pattern]))
+                    return [pattern, DXCC_LIST[pattern]]
+
+def handleExtendedCalls(callsign):
+    """handles complexer callsigns with occurences of /"""
+    callsign_parts = callsign.split('/')
+    # Callsign has to parts, example 5B/DL8BH
+    if len(callsign_parts) == 2:
+        prefix = callsign_parts[0]
+        suffix = callsign_parts[1]
+        print(suffix)
+        if suffix in ['MM', 'MM1', 'MM2', 'MM3', 'AM']:
+            return False
+        if re.match(r'[0-9]', suffix[0]):
+            print('foo')
+            if re.match(r'^A[A-L]|^[KWN]',prefix):
+                return 'W{}'.format(suffix[0])
+        else:
+            prefix[2] = suffix[0]
+            return prefix
 
 DXCC_LIST = init_country_tab()
 
-call2dxcc('DL8BH', None)
+#print(handleExtendedCalls('W7ABC/2'))
+call2dxcc('W7ABC/2', None)
