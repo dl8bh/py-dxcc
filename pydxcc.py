@@ -116,22 +116,26 @@ def handleExtendedCalls(callsign):
         suffix = callsign_parts[1]
         if suffix in ['MM', 'MM1', 'MM2', 'MM3', 'AM']:
             return False
-        # KL7AA/1 -> W1
-        if re.match(r'[0-9]', suffix[0]):
-            if VERBOSE >= DEBUG:
-                print('{} matches pattern KL7AA/1'.format(callsign))
-            if re.match(r'^A[A-L]|^[KWN]',prefix):
-                return 'W{}'.format(suffix[0])
-            else:
-                prefix_to_list = list(prefix)
-                prefix_to_list[2] = suffix[0]
-                prefix = ''.join(prefix_to_list)
-                if VERBOSE >= DEBUG:
-                    print('resulting callsign is: {}'.format(prefix))
+        # only one character of suffix: DL8BH/P DL8BH/1
+        if len(suffix) == 1:
+            if suffix in ['M', 'P'] and not re.match(r'^LU', prefix):
                 return prefix
+            # KL7AA/1 -> W1
+            if re.match(r'[0-9]', suffix[0]):
+                if VERBOSE >= DEBUG:
+                    print('{} matches pattern KL7AA/1'.format(callsign))
+                if re.match(r'^A[A-L]|^[KWN]',prefix):
+                    return 'W{}'.format(suffix[0])
+                else:
+                    prefix_to_list = list(prefix)
+                    prefix_to_list[2] = suffix[0]
+                    prefix = ''.join(prefix_to_list)
+                    if VERBOSE >= DEBUG:
+                        print('resulting callsign is: {}'.format(prefix))
+                    return prefix
     elif len(callsign_parts) == 3:
         if VERBOSE >= DEBUG:
             print('callsign has 3 parts')
         
 DXCC_LIST = init_country_tab()
-call2dxcc('A/DL8BH/B', None)
+call2dxcc('BY1AGN', None)
