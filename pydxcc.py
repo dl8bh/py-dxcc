@@ -133,9 +133,23 @@ def handleExtendedCalls(callsign):
                     if VERBOSE >= DEBUG:
                         print('resulting callsign is: {}'.format(prefix))
                     return prefix
+            # handle special suffixes from argentinia
+            elif re.match(r'^[A-DEHJL-VX-Z]', suffix):
+                if VERBOSE >= DEBUG:
+                    print('{} suffix from argentinia?'.format(callsign))
+                # list of argenitian prefixes AY, AZ, LO-LW
+                if re.match(r'^(AY|AZ|L[O-W])', prefix):
+                    # LU1ABC/z -> LU1zAB
+                    prefix_to_list = list(prefix)
+                    prefix_to_list[3] = suffix
+                    prefix = ''.join(prefix_to_list)
+                    return prefix
+                else:
+                    return callsign
+                
     elif len(callsign_parts) == 3:
         if VERBOSE >= DEBUG:
             print('callsign has 3 parts')
         
 DXCC_LIST = init_country_tab()
-call2dxcc('BY1AGN', None)
+call2dxcc('LU1ABC/M', None)
