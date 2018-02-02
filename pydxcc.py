@@ -3,13 +3,21 @@
 import csv
 import re
 from datetime import datetime
-DEBUG = False
+DEBUG = 3
+TRACE1 = 4
+TRACE2 = 5
+VERBOSE = DEBUG
 
 def pattern_to_regex(pattern):
     """transform pattern from file to regex"""
-    pattern = pattern.replace('  ', ' ').replace('%', '[A-Z]').replace('#', '[0-9]').replace(' ', '$|^').replace('=', '')
-    if not pattern.endswith('$'):
-        pattern += '$'
+    # = is the hint in country.tab, that an explicit call is given
+    if '=' in pattern:
+        pattern = pattern.replace('  ', ' ').replace('%', '[A-Z]').replace('#', '[0-9]').replace(' ', '$|^').replace('=', '')
+        if not pattern.endswith('$'):
+            pattern += '$'
+    # regex else
+    else:
+        pattern = pattern.replace('  ', ' ').replace('%', '[A-Z]').replace('#', '[0-9]').replace(' ', '|^').replace('=', '')
     if not pattern[0] == '^':
         pattern = '^' + pattern
     return pattern
@@ -48,6 +56,8 @@ def init_country_tab():
                     'alt_dxcc' : date_dxcc_string.group('alt_dxcc')
                 }
                 dxcc_list[pattern_to_regex(pattern.strip())] = attributes
+    if VERBOSE >= DEBUG:
+        print("{} calls parsed".format(len(dxcc_list)))
     return dxcc_list
 
 
@@ -58,51 +68,70 @@ def call2dxcc(callsign, date):
         date = datetime.utcnow()
     if '/' in callsign:
         callsign = handleExtendedCalls(callsign)
+    direct_hit_list = {}
+    regex_hit_list = {}
     for pattern in DXCC_LIST:
         indaterange = True
         valid_to = DXCC_LIST[pattern]['valid_to']
         valid_from = DXCC_LIST[pattern]['valid_from']
-        #print(valid_from)
         if valid_to is not None:
             if date > valid_to:
                 indaterange = False
         if indaterange and not valid_from is None:
             if date < valid_from:
                 indaterange = False
+        # if in the valid date range, build two lists, one complete call hits
+        # one with the regex hits
         if indaterange:
-            print(pattern)
-            # chech for direct hits
-            if pattern.startswith('^'):
-                if re.match(pattern, callsign):
-                    if DEBUG:
-                        print("found {} {}".format(pattern, DXCC_LIST[pattern]))
-                    return [pattern, DXCC_LIST[pattern]]
-            # check for regex hits
-            if pattern.startswith(callsign[0]) or pattern.startswith('['):
-                if re.match(pattern, callsign):
-                    if DEBUG:
-                        print("found {} {}".format(pattern, DXCC_LIST[pattern]))
-                    return [pattern, DXCC_LIST[pattern]]
+            if "$" in pattern:
+                direct_hit_list[pattern] = DXCC_LIST[pattern]
+            else:
+                regex_hit_list[pattern] = DXCC_LIST[pattern]
+    # chech for direct hits
+    for pattern in direct_hit_list:
+        if re.match(pattern, callsign):
+            if VERBOSE >= DEBUG:
+                print("found direct hit {} {}".format(pattern, DXCC_LIST[pattern]))
+            return [pattern, DXCC_LIST[pattern]]
+    # check for regex hits
+    for pattern in regex_hit_list:
+        if pattern[1] in [callsign[0],'[']:                    
+            if VERBOSE >= TRACE1:
+                print(pattern)
+            if re.match(pattern, callsign):
+                if VERBOSE >= DEBUG:
+                    print("found {} {}".format(pattern, DXCC_LIST[pattern]))
+                return [pattern, DXCC_LIST[pattern]]
 
 def handleExtendedCalls(callsign):
     """handles complexer callsigns with occurences of /"""
+    if VERBOSE >= DEBUG:
+        print('{} is an extended callsign'.format(callsign))
     callsign_parts = callsign.split('/')
     # Callsign has to parts, example 5B/DL8BH
     if len(callsign_parts) == 2:
+        if VERBOSE >= DEBUG:
+            print('callsign has 2 parts')
         prefix = callsign_parts[0]
         suffix = callsign_parts[1]
-        print(suffix)
         if suffix in ['MM', 'MM1', 'MM2', 'MM3', 'AM']:
             return False
+        # KL7AA/1 -> W1
         if re.match(r'[0-9]', suffix[0]):
-            print('foo')
+            if VERBOSE >= DEBUG:
+                print('{} matches pattern KL7AA/1'.format(callsign))
             if re.match(r'^A[A-L]|^[KWN]',prefix):
                 return 'W{}'.format(suffix[0])
-        else:
-            prefix[2] = suffix[0]
-            return prefix
-
+            else:
+                prefix_to_list = list(prefix)
+                prefix_to_list[2] = suffix[0]
+                prefix = ''.join(prefix_to_list)
+                if VERBOSE >= DEBUG:
+                    print('resulting callsign is: {}'.format(prefix))
+                return prefix
+    elif len(callsign_parts) == 3:
+        if VERBOSE >= DEBUG:
+            print('callsign has 3 parts')
+        
 DXCC_LIST = init_country_tab()
-
-#print(handleExtendedCalls('W7ABC/2'))
-call2dxcc('W7ABC/2', None)
+call2dxcc('A/DL8BH/B', None)
