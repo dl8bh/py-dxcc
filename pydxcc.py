@@ -61,7 +61,7 @@ def init_country_tab():
     return dxcc_list
 
 
-def call2dxcc(callsign, date):
+def call2dxcc(callsign, date = None):
     """does the job in resolving the callsign"""
     # if date is not given, assume date is now
     if not date:
@@ -178,6 +178,6 @@ def handleExtendedCalls(callsign):
                     if VERBOSE >= DEBUG:
                         print('resulting callsign is: {}'.format(prefix))
                     return prefix
-        
+
 DXCC_LIST = init_country_tab()
 call2dxcc('LU1ABC/M', None)
