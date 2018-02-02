@@ -66,8 +66,6 @@ def call2dxcc(callsign, date):
     # if date is not given, assume date is now
     if not date:
         date = datetime.utcnow()
-    if '/' in callsign:
-        callsign = handleExtendedCalls(callsign)
     direct_hit_list = {}
     regex_hit_list = {}
     for pattern in DXCC_LIST:
@@ -93,6 +91,9 @@ def call2dxcc(callsign, date):
             if VERBOSE >= DEBUG:
                 print("found direct hit {} {}".format(pattern, DXCC_LIST[pattern]))
             return [pattern, DXCC_LIST[pattern]]
+    # check for portable calls, after testing for direct hits
+    if '/' in callsign:
+        callsign = handleExtendedCalls(callsign)
     # check for regex hits
     for pattern in regex_hit_list:
         if pattern[1] in [callsign[0],'[']:                    
