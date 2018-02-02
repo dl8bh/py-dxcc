@@ -1,4 +1,4 @@
-#!/usr/bin/python3.5
+#!/usr/bin/python3
 """simple dxcc-resolution program to be used with cqrlogs dxcc-tables"""
 import csv
 import re
