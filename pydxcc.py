@@ -2,25 +2,25 @@
 """simple dxcc-resolution program to be used with cqrlogs dxcc-tables"""
 import csv
 import re
+from collections import OrderedDict
 from datetime import datetime
 DEBUG = 3
 TRACE1 = 4
 TRACE2 = 5
-VERBOSE = DEBUG
+VERBOSE = 3
 
-def pattern_to_regex(pattern):
+def pattern_to_regex(patternlist):
     """transform pattern from file to regex"""
     # = is the hint in country.tab, that an explicit call is given
-    if '=' in pattern:
-        pattern = pattern.replace('  ', ' ').replace('%', '[A-Z]').replace('#', '[0-9]').replace(' ', '$|^').replace('=', '')
-        if not pattern.endswith('$'):
-            pattern += '$'
-    # regex else
-    else:
-        pattern = pattern.replace('  ', ' ').replace('%', '[A-Z]').replace('#', '[0-9]').replace(' ', '|^').replace('=', '')
-    if not pattern[0] == '^':
+    returnlist = []
+    patternlist = patternlist.replace('  ', ' ')
+    for pattern in patternlist.split(' '):
+        pattern = pattern.replace('%', '[A-Z]').replace('#', '[0-9]')
+        pattern += '$'
         pattern = '^' + pattern
-    return pattern
+        returnlist.append(pattern)
+    return returnlist
+        
 
 def init_country_tab():
     """initializes a dict with data from the dxcc-tables from file"""
@@ -28,11 +28,12 @@ def init_country_tab():
     with open("/home/bernhard/.config/cqrlog/dxcc_data/country.tab", "r") as countrytab:
         # split country.tab to list linewise
         countrytabcsv = csv.reader(countrytab, delimiter='|')
-        dxcc_list = {}
+        dxcc_list = OrderedDict()
         for row in countrytabcsv:
             row_list = list(row)
             # only check Regexp-Entries
-            if row_list[9] == "R":
+            # if row_list[9] == "R":
+            if True:
                 indaterange = True
                 date_dxcc_string = date_dxcc_regex.search(row_list[10])
                 dateto = None
@@ -55,7 +56,8 @@ def init_country_tab():
                     'valid_to' : dateto,
                     'alt_dxcc' : date_dxcc_string.group('alt_dxcc')
                 }
-                dxcc_list[pattern_to_regex(pattern.strip())] = attributes
+                for singlepattern in pattern_to_regex(pattern.strip()):
+                    dxcc_list[singlepattern] = attributes
     if VERBOSE >= DEBUG:
         print("{} calls parsed".format(len(dxcc_list)))
     return dxcc_list
@@ -67,7 +69,7 @@ def call2dxcc(callsign, date = None):
     if not date:
         date = datetime.utcnow()
     direct_hit_list = {}
-    regex_hit_list = {}
+    regex_hit_list = OrderedDict()
     for pattern in DXCC_LIST:
         indaterange = True
         valid_to = DXCC_LIST[pattern]['valid_to']
@@ -81,8 +83,8 @@ def call2dxcc(callsign, date = None):
         # if in the valid date range, build two lists, one complete call hits
         # one with the regex hits
         if indaterange:
-            if "$" in pattern:
-                direct_hit_list[pattern] = DXCC_LIST[pattern]
+            if "=" in pattern:
+                direct_hit_list[pattern.replace('=', '')] = DXCC_LIST[pattern]
             else:
                 regex_hit_list[pattern] = DXCC_LIST[pattern]
     # chech for direct hits
@@ -126,6 +128,7 @@ def handleExtendedCalls(callsign):
                 if VERBOSE >= DEBUG:
                     print('{} matches pattern KL7AA/1'.format(callsign))
                 if re.match(r'^A[A-L]|^[KWN]',prefix):
+                    print('resulting callsign is: {}'.format('W{}'.format(suffix[0])))
                     return 'W{}'.format(suffix[0])
                 # RA1AAA/2 -> RA2AAA
                 else:
@@ -135,16 +138,17 @@ def handleExtendedCalls(callsign):
                     if VERBOSE >= DEBUG:
                         print('resulting callsign is: {}'.format(prefix))
                     return prefix
-            # handle special suffixes from argentinia
+            # handle special suffixes from argentina
             elif re.match(r'^[A-DEHJL-VX-Z]', suffix):
                 if VERBOSE >= DEBUG:
-                    print('{} suffix from argentinia?'.format(callsign))
+                    print('{} suffix from argentina?'.format(callsign))
                 # list of argenitian prefixes AY, AZ, LO-LW
                 if re.match(r'^(AY|AZ|L[O-W])', prefix):
                     # LU1ABC/z -> LU1zAB
                     prefix_to_list = list(prefix)
                     prefix_to_list[3] = suffix
                     prefix = ''.join(prefix_to_list)
+                    print('resulting callsign is: {}'.format(prefix))
                     return prefix
                 else:
                     return callsign
@@ -180,4 +184,10 @@ def handleExtendedCalls(callsign):
                     return prefix
 
 DXCC_LIST = init_country_tab()
-call2dxcc('LU1ABC/M', None)
+#for pattern in DXCC_LIST:
+#    print(pattern)
+from timeit import default_timer as timer
+start = timer()
+print(call2dxcc('DL', None))
+end = timer()
+print(end - start)      
