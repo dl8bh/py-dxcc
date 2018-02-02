@@ -127,6 +127,7 @@ def handleExtendedCalls(callsign):
                     print('{} matches pattern KL7AA/1'.format(callsign))
                 if re.match(r'^A[A-L]|^[KWN]',prefix):
                     return 'W{}'.format(suffix[0])
+                # RA1AAA/2 -> RA2AAA
                 else:
                     prefix_to_list = list(prefix)
                     prefix_to_list[2] = suffix[0]
@@ -147,10 +148,36 @@ def handleExtendedCalls(callsign):
                     return prefix
                 else:
                     return callsign
-                
+        if 1 < len(suffix) < 5:
+            if suffix in ['QRP', 'QRPP']:
+                return prefix
+            else:
+                return prefix
+
     elif len(callsign_parts) == 3:
         if VERBOSE >= DEBUG:
             print('callsign has 3 parts')
+        prefix = callsign_parts[0]
+        middle = callsign_parts[1]
+        suffix = callsign_parts[2]
+        # maritime mobile and aeronautic mobile is not valid for DXCC
+        if suffix in ['MM', 'AM']:
+            return False
+        if len(middle) > 0:
+            # KL7AA/1/M -> W1
+            if re.match(r'[0-9]', middle[0]):
+                if VERBOSE >= DEBUG:
+                    print('{} matches pattern KL7AA/1/M'.format(callsign))
+                if re.match(r'^A[A-L]|^[KWN]',prefix):
+                    return 'W{}'.format(middle[0])
+                # RA1AAA/2/M -> RA2AAA
+                else:
+                    prefix_to_list = list(prefix)
+                    prefix_to_list[2] = middle[0]
+                    prefix = ''.join(prefix_to_list)
+                    if VERBOSE >= DEBUG:
+                        print('resulting callsign is: {}'.format(prefix))
+                    return prefix
         
 DXCC_LIST = init_country_tab()
 call2dxcc('LU1ABC/M', None)
