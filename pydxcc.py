@@ -167,6 +167,8 @@ def handleExtendedCalls(callsign):
         # maritime mobile and aeronautic mobile is not valid for DXCC
         if suffix in ['MM', 'AM']:
             return False
+        if suffix in ['M', 'QRP', 'P']:
+            return handleExtendedCalls('{}/{}'.format(prefix, middle))
         if len(middle) > 0:
             # KL7AA/1/M -> W1
             if re.match(r'[0-9]', middle[0]):
