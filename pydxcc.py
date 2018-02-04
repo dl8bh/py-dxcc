@@ -152,6 +152,8 @@ def handleExtendedCalls(callsign):
                     return prefix
                 else:
                     return callsign
+        if len(prefix) <= 3 < len(suffix):
+            return prefix
         if 1 < len(suffix) < 5:
             if suffix in ['QRP', 'QRPP']:
                 return prefix
