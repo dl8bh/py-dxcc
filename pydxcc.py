@@ -9,6 +9,8 @@ TRACE1 = 4
 TRACE2 = 5
 VERBOSE = 3
 
+NODXCC = { 'coord_e': None, 'valid_to': None, 'utc_offset': None, 'coord_n': None, 'waz': None, 'alt_dxcc': None, 'itu': None, 'valid_from': None, 'name': 'No DXCC', 'continent': None }
+
 def pattern_to_regex(patternlist):
     """transform pattern from file to regex"""
     # = is the hint in country.tab, that an explicit call is given
@@ -110,6 +112,10 @@ def call2dxcc(callsign, date = None):
     # check for portable calls, after testing for direct hits
     if '/' in callsign:
         callsign = handleExtendedCalls(callsign)
+        if callsign == None:
+            if VERBOSE >= DEBUG:
+                print("callsign not valid for DXCC")
+            return [None, NODXCC]
     # check for regex hits
     for pattern in regex_hit_list:
         if pattern[1] in [callsign[0],'[']:                    
@@ -119,6 +125,9 @@ def call2dxcc(callsign, date = None):
                 if VERBOSE >= DEBUG:
                     print("found {} {}".format(pattern, DXCC_LIST[pattern]))
                 return [pattern, DXCC_LIST[pattern]]
+    if VERBOSE >= DEBUG:
+        print("no matching dxcc found")
+    return[None, NODXCC]
 
 def handleExtendedCalls(callsign):
     """handles complexer callsigns with occurences of /"""
@@ -200,12 +209,17 @@ def handleExtendedCalls(callsign):
                     if VERBOSE >= DEBUG:
                         print('resulting callsign is: {}'.format(prefix))
                     return prefix
+        # Fuzzy match for implausible suffixes like MM0/DL8BH/FOO
+        if len(middle) > len(prefix) and len(middle) > len(suffix) and handleExtendedCalls(prefix + '/' + middle) != None:
+            return handleExtendedCalls(prefix + '/' + suffix)
+        else:
+             return None
 
 DXCC_LIST = init_country_tab()
 #for pattern in DXCC_LIST:
 #    print(pattern)
 from timeit import default_timer as timer
 start = timer()
-print(call2dxcc('DL', None))
+print(call2dxcc('DL/ZL1IO', None))
 end = timer()
 print(end - start)      
