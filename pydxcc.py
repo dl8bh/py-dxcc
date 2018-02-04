@@ -35,29 +35,43 @@ def init_country_tab():
             # if row_list[9] == "R":
             if True:
                 indaterange = True
-                date_dxcc_string = date_dxcc_regex.search(row_list[10])
-                dateto = None
-                datefrom = None
-                # check, if timerange is (partly) given
-                if date_dxcc_string.group('to'):
-                    dateto = datetime.strptime(date_dxcc_string.group('to'), '%Y/%m/%d')
-                if indaterange and date_dxcc_string.group('from'):
-                    datefrom = datetime.strptime(date_dxcc_string.group('from'), '%Y/%m/%d')
-                pattern = row_list[0]
-                attributes = {
-                    'name' : row_list[1],
-                    'continent' : row_list[2],
-                    'utc_offset' : row_list[3],
-                    'coord_n' : row_list[4],
-                    'coord_e' : row_list[5],
-                    'itu' : row_list[6],
-                    'waz' : row_list[7],
-                    'valid_from' : datefrom,
-                    'valid_to' : dateto,
-                    'alt_dxcc' : date_dxcc_string.group('alt_dxcc')
-                }
-                for singlepattern in pattern_to_regex(pattern.strip()):
-                    dxcc_list[singlepattern] = attributes
+                try:
+                    date_dxcc_string = date_dxcc_regex.search(row_list[10])
+                except IndexError as error:
+                    if VERBOSE >= DEBUG:
+                        print('{} for line {}'.format(error, row_list))
+                else:
+                    dateto = None
+                    datefrom = None
+                    # check, if timerange is (partly) given
+                    if date_dxcc_string.group('to'):
+                        try:
+                            dateto = datetime.strptime(date_dxcc_string.group('to'), '%Y/%m/%d')
+                        except ValueError as valerr:
+                            if VERBOSE >= DEBUG:
+                                print('{} in date_to of line {}'.format(valerr,row_list))
+                    if indaterange and date_dxcc_string.group('from'):
+                        try:
+                            datefrom = datetime.strptime(date_dxcc_string.group('from'), '%Y/%m/%d')
+                        except ValueError as valerr:
+                            if VERBOSE >= DEBUG:
+                                print('{} in date_from of line {}'.format(valerr,row_list))
+                    pattern = row_list[0]
+                    attributes = {
+                        'name' : row_list[1],
+                        'continent' : row_list[2],
+                        'utc_offset' : row_list[3],
+                        'coord_n' : row_list[4],
+                        'coord_e' : row_list[5],
+                        'itu' : row_list[6],
+                        'waz' : row_list[7],
+                        'valid_from' : datefrom,
+                        'valid_to' : dateto,
+                        'alt_dxcc' : date_dxcc_string.group('alt_dxcc')
+                    }
+                    for singlepattern in pattern_to_regex(pattern.strip()):
+                        dxcc_list[singlepattern] = attributes
+
     if VERBOSE >= DEBUG:
         print("{} calls parsed".format(len(dxcc_list)))
     return dxcc_list
