@@ -24,8 +24,8 @@ def pattern_to_regex(patternlist):
     return returnlist
         
 
-def init_country_tab(date = None):
-    """initializes a dict with data from the dxcc-tables from file"""
+def date_country_tab(date = None):
+    """initializes a dict with data from the dxcc-tables from file, filtered by date"""
     if not date:
         date = datetime.utcnow()
     date_dxcc_regex = re.compile(r'((?P<from>\d\d\d\d/\d\d/\d\d)*-(?P<to>\d\d\d\d/\d\d/\d\d)*)*(=(?P<alt_dxcc>\d*))*')
@@ -87,6 +87,26 @@ def init_country_tab(date = None):
         print("{} calls parsed".format(len(dxcc_list)))
     return dxcc_list
 
+def init_country_tab(date = None):
+    """builds an initial GLOBAL_DXCC_LIST, if date not defined with date from today"""
+    if not date:
+        date = datetime.utcnow()
+        if VERBOSE >= DEBUG:
+            print("initializing GLOBAL_DXCC_LIST with date {}".format(date.strftime("%Y-%m-%d")))
+    GLOBAL_DXCC_LIST[date.strftime("%Y-%m-%d")] = date_country_tab(date)
+
+def get_date_country_tab(date):
+    """returns date-specific country-tab, builds it, if needed"""
+    if not date:
+        date = datetime.utcnow()
+    if not GLOBAL_DXCC_LIST[date.strftime("%Y-%m-%d")]:
+        if VERBOSE >= DEBUG:
+            print("{} not found in GLOBAL_DXCC_LIST, adding".format(date.strftime("%Y-%m-%d")))
+        GLOBAL_DXCC_LIST[date.strftime("%Y-%m-%d")] = date_country_tab(date)
+    else:
+        if VERBOSE >= DEBUG:
+            print("{} found in GLOBAL_DXCC_LIST, using that".format(date.strftime("%Y-%m-%d")))
+    return GLOBAL_DXCC_LIST[date.strftime("%Y-%m-%d")]
 
 def call2dxcc(callsign, date = None):
     """does the job in resolving the callsign"""
@@ -95,6 +115,8 @@ def call2dxcc(callsign, date = None):
         date = datetime.utcnow()
     direct_hit_list = {}
     regex_hit_list = OrderedDict()
+#    DXCC_DATE_LIST =  DXCC_LIST[date.strftime("%Y-%m-%d")]
+    DXCC_LIST = get_date_country_tab(date)
     for pattern in DXCC_LIST:
         indaterange = True
         valid_to = DXCC_LIST[pattern]['valid_to']
@@ -227,12 +249,14 @@ def handleExtendedCalls(callsign):
         else:
              return None
 
-DXCC_LIST = init_country_tab(None)
-for pattern in DXCC_LIST:
+
+GLOBAL_DXCC_LIST = {}
+init_country_tab(None)
+for pattern in GLOBAL_DXCC_LIST:
     print(pattern)
 from timeit import default_timer as timer
 start = timer()
 print(call2dxcc('DL/ZL1IO', None))
 print(call2dxcc('DP1POL', None))
 end = timer()
-print(end - start)      
+print(end - start)
