@@ -7,7 +7,7 @@ from datetime import datetime
 DEBUG = 3
 TRACE1 = 4
 TRACE2 = 5
-VERBOSE = 3
+VERBOSE = DEBUG
 
 NODXCC = { 'coord_e': None, 'valid_to': None, 'utc_offset': None, 'coord_n': None, 'waz': None, 'alt_dxcc': None, 'itu': None, 'valid_from': None, 'name': 'No DXCC', 'continent': None }
 
@@ -24,13 +24,15 @@ def pattern_to_regex(patternlist):
     return returnlist
         
 
-def init_country_tab():
+def init_country_tab(date = None):
     """initializes a dict with data from the dxcc-tables from file"""
+    if not date:
+        date = datetime.utcnow()
     date_dxcc_regex = re.compile(r'((?P<from>\d\d\d\d/\d\d/\d\d)*-(?P<to>\d\d\d\d/\d\d/\d\d)*)*(=(?P<alt_dxcc>\d*))*')
     with open("/home/bernhard/.config/cqrlog/dxcc_data/country.tab", "r") as countrytab:
         # split country.tab to list linewise
         countrytabcsv = csv.reader(countrytab, delimiter='|')
-        dxcc_list = OrderedDict()
+        dxcc_list = {}
         for row in countrytabcsv:
             row_list = list(row)
             # only check Regexp-Entries
@@ -52,27 +54,34 @@ def init_country_tab():
                         except ValueError as valerr:
                             if VERBOSE >= DEBUG:
                                 print('{} in date_to of line {}'.format(valerr,row_list))
-                    if indaterange and date_dxcc_string.group('from'):
+                    if date_dxcc_string.group('from'):
                         try:
                             datefrom = datetime.strptime(date_dxcc_string.group('from'), '%Y/%m/%d')
                         except ValueError as valerr:
                             if VERBOSE >= DEBUG:
                                 print('{} in date_from of line {}'.format(valerr,row_list))
-                    pattern = row_list[0]
-                    attributes = {
-                        'name' : row_list[1],
-                        'continent' : row_list[2],
-                        'utc_offset' : row_list[3],
-                        'coord_n' : row_list[4],
-                        'coord_e' : row_list[5],
-                        'itu' : row_list[6],
-                        'waz' : row_list[7],
-                        'valid_from' : datefrom,
-                        'valid_to' : dateto,
-                        'alt_dxcc' : date_dxcc_string.group('alt_dxcc')
-                    }
-                    for singlepattern in pattern_to_regex(pattern.strip()):
-                        dxcc_list[singlepattern] = attributes
+                    if dateto is not None:
+                        if date > dateto:
+                            indaterange = False
+                    if indaterange and not datefrom is None:
+                        if date < datefrom:
+                            indaterange = False
+                    if indaterange:
+                        pattern = row_list[0]
+                        attributes = {
+                            'name' : row_list[1],
+                            'continent' : row_list[2],
+                            'utc_offset' : row_list[3],
+                            'coord_n' : row_list[4],
+                            'coord_e' : row_list[5],
+                            'itu' : row_list[6],
+                            'waz' : row_list[7],
+                            'valid_from' : datefrom,
+                            'valid_to' : dateto,
+                            'alt_dxcc' : date_dxcc_string.group('alt_dxcc')
+                        }
+                        for singlepattern in pattern_to_regex(pattern.strip()):
+                            dxcc_list[singlepattern] = attributes
 
     if VERBOSE >= DEBUG:
         print("{} calls parsed".format(len(dxcc_list)))
@@ -99,13 +108,16 @@ def call2dxcc(callsign, date = None):
         # if in the valid date range, build two lists, one complete call hits
         # one with the regex hits
         if indaterange:
-            if "=" in pattern:
+            #print(pattern)
+            if "=" in pattern and len(callsign) == (len(pattern) -3):
+             #   print(pattern)
                 direct_hit_list[pattern.replace('=', '')] = DXCC_LIST[pattern]
             else:
                 regex_hit_list[pattern] = DXCC_LIST[pattern]
     # chech for direct hits
     for pattern in direct_hit_list:
         if re.match(pattern, callsign):
+            pattern = pattern.replace('^', '^=')
             if VERBOSE >= DEBUG:
                 print("found direct hit {} {}".format(pattern, DXCC_LIST[pattern]))
             return [pattern, DXCC_LIST[pattern]]
@@ -215,11 +227,12 @@ def handleExtendedCalls(callsign):
         else:
              return None
 
-DXCC_LIST = init_country_tab()
-#for pattern in DXCC_LIST:
-#    print(pattern)
+DXCC_LIST = init_country_tab(None)
+for pattern in DXCC_LIST:
+    print(pattern)
 from timeit import default_timer as timer
 start = timer()
 print(call2dxcc('DL/ZL1IO', None))
+print(call2dxcc('DP1POL', None))
 end = timer()
 print(end - start)      
