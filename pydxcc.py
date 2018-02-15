@@ -154,7 +154,7 @@ def call2dxcc(callsign, date = None):
     # check for portable calls, after testing for direct hits
     if '/' in callsign:
         callsign = handleExtendedCalls(callsign)
-        if callsign == None:
+        if callsign == False:
             if VERBOSE >= DEBUG:
                 print("callsign not valid for DXCC")
                 NODXCC["callsign"] = ORIGINALCALLSIGN
