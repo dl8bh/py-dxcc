@@ -4,6 +4,7 @@ import csv
 import re
 from collections import OrderedDict
 from datetime import datetime
+
 DEBUG = 3
 TRACE1 = 4
 TRACE2 = 5
@@ -30,7 +31,7 @@ def date_country_tab(date = None):
     if not date:
         date = datetime.utcnow()
     date_dxcc_regex = re.compile(r'((?P<from>\d\d\d\d/\d\d/\d\d)*-(?P<to>\d\d\d\d/\d\d/\d\d)*)*(=(?P<alt_dxcc>\d*))*')
-    with open("/home/bernhard/.config/cqrlog/dxcc_data/country.tab", "r") as countrytab:
+    with open("/home/bernhard/.config/cqrlog/dxcc_data/country.tab", "r", encoding='utf-8') as countrytab:
         # split country.tab to list linewise
         countrytabcsv = csv.reader(countrytab, delimiter='|')
         dxcc_list = {}
