@@ -17,8 +17,9 @@ def pattern_to_regex(patternlist):
     returnlist = []
     patternlist = patternlist.replace('  ', ' ')
     for pattern in patternlist.split(' '):
-        pattern = pattern.replace('%', '[A-Z]').replace('#', '[0-9]')
-        pattern += '$'
+        if '%' in pattern or '#' in pattern or '=' in pattern:
+            pattern = pattern.replace('%', '[A-Z]').replace('#', '[0-9]')
+            pattern += '$'
         pattern = '^' + pattern
         returnlist.append(pattern)
     return returnlist
@@ -35,8 +36,6 @@ def date_country_tab(date = None):
         dxcc_list = {}
         for row in countrytabcsv:
             row_list = list(row)
-            # only check Regexp-Entries
-            # if row_list[9] == "R":
             if True:
                 indaterange = True
                 try:
@@ -81,6 +80,9 @@ def date_country_tab(date = None):
                             'alt_dxcc' : date_dxcc_string.group('alt_dxcc')
                         }
                         for singlepattern in pattern_to_regex(pattern.strip()):
+                            # prefix non-REGEX patterns with ~
+                            if row_list[9] != "R":
+                                singlepattern = '~' + singlepattern
                             dxcc_list[singlepattern] = attributes
 
     if VERBOSE >= DEBUG:
@@ -114,6 +116,7 @@ def call2dxcc(callsign, date = None):
     if not date:
         date = datetime.utcnow()
     direct_hit_list = {}
+    prefix_hit_list = {}
     regex_hit_list = OrderedDict()
 #    DXCC_DATE_LIST =  DXCC_LIST[date.strftime("%Y-%m-%d")]
     DXCC_LIST = get_date_country_tab(date)
@@ -132,8 +135,11 @@ def call2dxcc(callsign, date = None):
         if indaterange:
             #print(pattern)
             if "=" in pattern and len(callsign) == (len(pattern) -3):
-             #   print(pattern)
                 direct_hit_list[pattern.replace('=', '')] = DXCC_LIST[pattern]
+                print(pattern)
+            # ~ indicates, that a PREFIX and not a REGEX is given for CEPT based resolution
+            elif "~" in pattern:
+                prefix_hit_list[pattern.replace('~', '')] = DXCC_LIST[pattern]
             else:
                 regex_hit_list[pattern] = DXCC_LIST[pattern]
     # chech for direct hits
@@ -159,6 +165,15 @@ def call2dxcc(callsign, date = None):
                 if VERBOSE >= DEBUG:
                     print("found {} {}".format(pattern, DXCC_LIST[pattern]))
                 return [pattern, DXCC_LIST[pattern]]
+    # check for prefix hits
+    for pattern in prefix_hit_list:
+        if VERBOSE >= TRACE1:
+            print(pattern)
+        if re.match(pattern, callsign):
+            pattern = pattern.replace('^', '~^')
+            if VERBOSE >= DEBUG:
+                print("found {} {}".format(pattern, DXCC_LIST[pattern]))
+            return [pattern, DXCC_LIST[pattern]]
     if VERBOSE >= DEBUG:
         print("no matching dxcc found")
     return[None, NODXCC]
@@ -258,5 +273,6 @@ from timeit import default_timer as timer
 start = timer()
 print(call2dxcc('DL/ZL1IO', None))
 print(call2dxcc('DP1POL', None))
+print(call2dxcc('DL0ABC', None))
 end = timer()
 print(end - start)
