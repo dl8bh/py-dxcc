@@ -74,6 +74,10 @@ def date_country_tab(date = None):
                             indaterange = False
                     if indaterange:
                         pattern = row_list[0]
+                        if row_list[9] == "R":
+                            adif = date_dxcc_string.group('alt_dxcc')
+                        else:
+                            adif = row_list[8]
                         attributes = {
                             'details' : row_list[1],
                             'continent' : row_list[2],
@@ -84,7 +88,7 @@ def date_country_tab(date = None):
                             'waz' : row_list[7],
                             'valid_from' : datefrom_string,
                             'valid_to' : dateto_string,
-                            'adif' : date_dxcc_string.group('alt_dxcc')
+                            'adif' : adif
                         }
                         for singlepattern in pattern_to_regex(pattern.strip()):
                             # prefix non-REGEX patterns with ~
