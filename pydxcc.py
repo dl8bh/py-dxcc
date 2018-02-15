@@ -75,7 +75,7 @@ def date_country_tab(date = None):
                     if indaterange:
                         pattern = row_list[0]
                         attributes = {
-                            'name' : row_list[1],
+                            'details' : row_list[1],
                             'continent' : row_list[2],
                             'utc' : row_list[3],
                             'lat' : row_list[4],
