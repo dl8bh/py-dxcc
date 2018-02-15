@@ -13,7 +13,7 @@ class index:
 
 class findcall:
     def GET(self, callsign):
-        return pydxcc.call2dxcc(callsign.upper(), None)
+        return (pydxcc.dxcc2xml(pydxcc.call2dxcc(callsign.upper(), None)))
 
 app = web.application(urls, globals())
 application = app.wsgifunc()

@@ -4,13 +4,14 @@ import csv
 import re
 from collections import OrderedDict
 from datetime import datetime
+import dicttoxml
 
 DEBUG = 3
 TRACE1 = 4
 TRACE2 = 5
 VERBOSE = DEBUG
 
-NODXCC = { 'coord_e': None, 'valid_to': None, 'utc_offset': None, 'coord_n': None, 'waz': None, 'alt_dxcc': None, 'itu': None, 'valid_from': None, 'name': 'No DXCC', 'continent': None }
+NODXCC = { 'long': None, 'lat': None, 'valid_to': None, 'utc': None, 'waz': None, 'adif': None, 'itu': None, 'valid_from': None, 'name': 'No DXCC', 'continent': None }
 
 def pattern_to_regex(patternlist):
     """transform pattern from file to regex"""
@@ -71,14 +72,14 @@ def date_country_tab(date = None):
                         attributes = {
                             'name' : row_list[1],
                             'continent' : row_list[2],
-                            'utc_offset' : row_list[3],
-                            'coord_n' : row_list[4],
-                            'coord_e' : row_list[5],
+                            'utc' : row_list[3],
+                            'lat' : row_list[4],
+                            'lng' : row_list[5],
                             'itu' : row_list[6],
                             'waz' : row_list[7],
                             'valid_from' : datefrom,
                             'valid_to' : dateto,
-                            'alt_dxcc' : date_dxcc_string.group('alt_dxcc')
+                            'adif' : date_dxcc_string.group('alt_dxcc')
                         }
                         for singlepattern in pattern_to_regex(pattern.strip()):
                             # prefix non-REGEX patterns with ~
@@ -89,6 +90,9 @@ def date_country_tab(date = None):
     if VERBOSE >= DEBUG:
         print("{} calls parsed".format(len(dxcc_list)))
     return dxcc_list
+
+def dxcc2xml(dxcc):
+    return dicttoxml.dicttoxml(dxcc[1], attr_type=False)
 
 def init_country_tab(date = None):
     """builds an initial GLOBAL_DXCC_LIST, if date not defined with date from today"""
@@ -113,6 +117,7 @@ def get_date_country_tab(date):
 
 def call2dxcc(callsign, date = None):
     """does the job in resolving the callsign"""
+    ORIGINALCALLSIGN = callsign
     # if date is not given, assume date is now
     if not date:
         date = datetime.utcnow()
@@ -137,7 +142,6 @@ def call2dxcc(callsign, date = None):
             #print(pattern)
             if "=" in pattern and len(callsign) == (len(pattern) -3):
                 direct_hit_list[pattern.replace('=', '')] = DXCC_LIST[pattern]
-                print(pattern)
             # ~ indicates, that a PREFIX and not a REGEX is given for CEPT based resolution
             elif "~" in pattern:
                 prefix_hit_list[pattern.replace('~', '')] = DXCC_LIST[pattern]
@@ -149,6 +153,7 @@ def call2dxcc(callsign, date = None):
             pattern = pattern.replace('^', '^=')
             if VERBOSE >= DEBUG:
                 print("found direct hit {} {}".format(pattern, DXCC_LIST[pattern]))
+            DXCC_LIST[pattern]["callsign"] = ORIGINALCALLSIGN
             return [pattern, DXCC_LIST[pattern]]
     # check for portable calls, after testing for direct hits
     if '/' in callsign:
@@ -156,6 +161,7 @@ def call2dxcc(callsign, date = None):
         if callsign == None:
             if VERBOSE >= DEBUG:
                 print("callsign not valid for DXCC")
+                NODXCC["callsign"] = ORIGINALCALLSIGN
             return [None, NODXCC]
     # check for regex hits
     for pattern in regex_hit_list:
@@ -165,6 +171,7 @@ def call2dxcc(callsign, date = None):
             if re.match(pattern, callsign):
                 if VERBOSE >= DEBUG:
                     print("found {} {}".format(pattern, DXCC_LIST[pattern]))
+                DXCC_LIST[pattern]["callsign"] = ORIGINALCALLSIGN
                 return [pattern, DXCC_LIST[pattern]]
     # check for prefix hits
     for pattern in prefix_hit_list:
@@ -174,9 +181,11 @@ def call2dxcc(callsign, date = None):
             pattern = pattern.replace('^', '~^')
             if VERBOSE >= DEBUG:
                 print("found {} {}".format(pattern, DXCC_LIST[pattern]))
+            DXCC_LIST[pattern]["callsign"] = ORIGINALCALLSIGN
             return [pattern, DXCC_LIST[pattern]]
     if VERBOSE >= DEBUG:
         print("no matching dxcc found")
+    NODXCC["callsign"] = ORIGINALCALLSIGN
     return[None, NODXCC]
 
 def handleExtendedCalls(callsign):
@@ -274,6 +283,6 @@ from timeit import default_timer as timer
 start = timer()
 print(call2dxcc('DL/ZL1IO', None))
 print(call2dxcc('DP1POL', None))
-print(call2dxcc('DL0ABC', None))
+#print(dxcc2xml(call2dxcc('DL0ABC', None)))
 end = timer()
 print(end - start)
