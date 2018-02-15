@@ -5,6 +5,7 @@ import re
 from collections import OrderedDict
 from datetime import datetime
 import dicttoxml
+import json
 
 DEBUG = 3
 TRACE1 = 4
@@ -46,18 +47,22 @@ def date_country_tab(date = None):
                     if VERBOSE >= DEBUG:
                         print('{} for line {}'.format(error, row_list))
                 else:
+                    dateto_string = None
                     dateto = None
+                    datefrom_string = None
                     datefrom = None
                     # check, if timerange is (partly) given
                     if date_dxcc_string.group('to'):
                         try:
                             dateto = datetime.strptime(date_dxcc_string.group('to'), '%Y/%m/%d')
+                            dateto_string = dateto.strftime("%Y-%m-%d")
                         except ValueError as valerr:
                             if VERBOSE >= DEBUG:
                                 print('{} in date_to of line {}'.format(valerr,row_list))
                     if date_dxcc_string.group('from'):
                         try:
                             datefrom = datetime.strptime(date_dxcc_string.group('from'), '%Y/%m/%d')
+                            datefrom_string = datefrom.strftime("%Y-%m-%d")
                         except ValueError as valerr:
                             if VERBOSE >= DEBUG:
                                 print('{} in date_from of line {}'.format(valerr,row_list))
@@ -77,8 +82,8 @@ def date_country_tab(date = None):
                             'lng' : row_list[5],
                             'itu' : row_list[6],
                             'waz' : row_list[7],
-                            'valid_from' : datefrom,
-                            'valid_to' : dateto,
+                            'valid_from' : datefrom_string,
+                            'valid_to' : dateto_string,
                             'adif' : date_dxcc_string.group('alt_dxcc')
                         }
                         for singlepattern in pattern_to_regex(pattern.strip()):
@@ -93,6 +98,9 @@ def date_country_tab(date = None):
 
 def dxcc2xml(dxcc):
     return dicttoxml.dicttoxml(dxcc[1], attr_type=False)
+
+def dxcc2json(dxcc):
+    return json.dumps(dxcc[1])
 
 def init_country_tab(date = None):
     """builds an initial GLOBAL_DXCC_LIST, if date not defined with date from today"""
@@ -127,26 +135,14 @@ def call2dxcc(callsign, date = None):
 #    DXCC_DATE_LIST =  DXCC_LIST[date.strftime("%Y-%m-%d")]
     DXCC_LIST = get_date_country_tab(date)
     for pattern in DXCC_LIST:
-        indaterange = True
-        valid_to = DXCC_LIST[pattern]['valid_to']
-        valid_from = DXCC_LIST[pattern]['valid_from']
-        if valid_to is not None:
-            if date > valid_to:
-                indaterange = False
-        if indaterange and not valid_from is None:
-            if date < valid_from:
-                indaterange = False
-        # if in the valid date range, build two lists, one complete call hits
-        # one with the regex hits
-        if indaterange:
-            #print(pattern)
-            if "=" in pattern and len(callsign) == (len(pattern) -3):
-                direct_hit_list[pattern.replace('=', '')] = DXCC_LIST[pattern]
-            # ~ indicates, that a PREFIX and not a REGEX is given for CEPT based resolution
-            elif "~" in pattern:
-                prefix_hit_list[pattern.replace('~', '')] = DXCC_LIST[pattern]
-            else:
-                regex_hit_list[pattern] = DXCC_LIST[pattern]
+        #print(pattern)
+        if "=" in pattern and len(callsign) == (len(pattern) -3):
+            direct_hit_list[pattern.replace('=', '')] = DXCC_LIST[pattern]
+        # ~ indicates, that a PREFIX and not a REGEX is given for CEPT based resolution
+        elif "~" in pattern:
+            prefix_hit_list[pattern.replace('~', '')] = DXCC_LIST[pattern]
+        else:
+            regex_hit_list[pattern] = DXCC_LIST[pattern]
     # chech for direct hits
     for pattern in direct_hit_list:
         if re.match(pattern, callsign):
@@ -283,6 +279,6 @@ from timeit import default_timer as timer
 start = timer()
 print(call2dxcc('DL/ZL1IO', None))
 print(call2dxcc('DP1POL', None))
-#print(dxcc2xml(call2dxcc('DL0ABC', None)))
+print(dxcc2json(call2dxcc('DL0ABC', None)))
 end = timer()
 print(end - start)
