@@ -5,7 +5,7 @@ import os
 urls = (
   '/callsign', 'index',
   '/lookup/json/(.+)', 'call_json',
-  '/lookup/xml/(.+)', 'call_json'
+  '/lookup/xml/(.+)', 'call_xml',
 )
 
 class index:
@@ -15,6 +15,7 @@ class index:
 class call_json:
     def GET(self, callsign):
         return (pydxcc.dxcc2json(pydxcc.call2dxcc(callsign.upper(), None)))
+
 class call_xml:
     def GET(self, callsign):
         return (pydxcc.dxcc2xml(pydxcc.call2dxcc(callsign.upper(), None)))
