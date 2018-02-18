@@ -118,7 +118,7 @@ def get_date_country_tab(date):
     """returns date-specific country-tab, builds it, if needed"""
     if not date:
         date = datetime.utcnow()
-    if not GLOBAL_DXCC_LIST[date.strftime("%Y-%m-%d")]:
+    if not GLOBAL_DXCC_LIST.get(date.strftime("%Y-%m-%d")):
         if VERBOSE >= DEBUG:
             print("{} not found in GLOBAL_DXCC_LIST, adding".format(date.strftime("%Y-%m-%d")))
         GLOBAL_DXCC_LIST[date.strftime("%Y-%m-%d")] = date_country_tab(date)
@@ -133,6 +133,8 @@ def call2dxcc(callsign, date = None):
     # if date is not given, assume date is now
     if not date:
         date = datetime.utcnow()
+    else:
+        date = datetime.strptime(date, "%Y-%m-%d")
     direct_hit_list = {}
     prefix_hit_list = {}
     regex_hit_list = OrderedDict()
