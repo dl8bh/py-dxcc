@@ -1,11 +1,17 @@
 #!/usr/bin/python3
 """simple dxcc-resolution program to be used with cqrlogs dxcc-tables"""
+import os
 import csv
 import re
 from collections import OrderedDict
 from datetime import datetime
 import dicttoxml
 import json
+import configparser
+
+CFG = configparser.ConfigParser()
+CFG.read('./pydxcc.cfg')
+CTYFILES_PATH = os.path.expanduser(CFG.get('CTYFILES', 'path'))
 
 DEBUG = 3
 TRACE1 = 4
@@ -33,7 +39,7 @@ def date_country_tab(date = None):
     if not date:
         date = datetime.utcnow()
     date_dxcc_regex = re.compile(r'((?P<from>\d\d\d\d/\d\d/\d\d)*-(?P<to>\d\d\d\d/\d\d/\d\d)*)*(=(?P<alt_dxcc>\d*))*')
-    with open("/home/bernhard/.config/cqrlog/dxcc_data/country.tab", "r", encoding='utf-8') as countrytab:
+    with open(CTYFILES_PATH + 'country.tab', "r", encoding='utf-8') as countrytab:
         # split country.tab to list linewise
         countrytabcsv = csv.reader(countrytab, delimiter='|')
         dxcc_list = {}
