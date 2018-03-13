@@ -10,7 +10,7 @@ import json
 import configparser
 
 CFG = configparser.ConfigParser()
-CFG.read('./pydxcc.cfg')
+CFG.read(os.path.expanduser(os.path.dirname(__file__) + '/pydxcc.cfg'))
 CTYFILES_PATH = os.path.expanduser(CFG.get('CTYFILES', 'path'))
 
 DEBUG = 3
