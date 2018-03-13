@@ -8,10 +8,14 @@ from datetime import datetime
 import dicttoxml
 import json
 import configparser
+import urllib.request
+import tarfile
+import fileinput
 
 CFG = configparser.ConfigParser()
 CFG.read(os.path.expanduser(os.path.dirname(__file__) + '/pydxcc.cfg'))
 CTYFILES_PATH = os.path.expanduser(CFG.get('CTYFILES', 'path'))
+CTYFILES_URL = CFG.get('CTYFILES', 'url')
 
 DEBUG = 3
 TRACE1 = 4
@@ -19,6 +23,19 @@ TRACE2 = 5
 VERBOSE = DEBUG
 
 NODXCC = { 'long': None, 'lat': None, 'valid_to': None, 'utc': None, 'waz': None, 'adif': None, 'itu': None, 'valid_from': None, 'name': 'No DXCC', 'continent': None }
+
+def fetch_country_files():
+    """Downloads the countryfiles from the cqrlog project"""
+    httpstream = urllib.request.urlopen(CTYFILES_URL)
+    ctyfile = tarfile.open(fileobj=httpstream, mode="r|gz")
+    ctyfile.extractall(path=CTYFILES_PATH)
+
+def process_country_files():
+    """concatenates the countryfiles in a cqrlog-compatible way"""
+    ctyfiles = [CTYFILES_PATH + 'Country.tab', CTYFILES_PATH + 'CallResolution.tbl', CTYFILES_PATH + 'AreaOK1RR.tbl']
+    with open(CTYFILES_PATH + 'country.tab', 'w') as countrytab, fileinput.input(ctyfiles) as fin:
+        for line in fin:
+            countrytab.write(line)
 
 def pattern_to_regex(patternlist):
     """transform pattern from file to regex"""
@@ -39,6 +56,11 @@ def date_country_tab(date = None):
     if not date:
         date = datetime.utcnow()
     date_dxcc_regex = re.compile(r'((?P<from>\d\d\d\d/\d\d/\d\d)*-(?P<to>\d\d\d\d/\d\d/\d\d)*)*(=(?P<alt_dxcc>\d*))*')
+    try:
+        open(CTYFILES_PATH + 'country.tab', "r")
+    except FileNotFoundError:
+        fetch_country_files()
+        process_country_files()
     with open(CTYFILES_PATH + 'country.tab', "r", encoding='utf-8') as countrytab:
         # split country.tab to list linewise
         countrytabcsv = csv.reader(countrytab, delimiter='|')
