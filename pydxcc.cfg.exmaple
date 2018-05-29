@@ -1,3 +1,4 @@
 [CTYFILES]
 path = ~/.config/cqrlog/dxcc_data/
 url = http://www.ok2cqr.com/linux/cqrlog/ctyfiles/cqrlog-cty.tar.gz
+autofetch = True

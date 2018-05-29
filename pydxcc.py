@@ -16,6 +16,7 @@ CFG = configparser.ConfigParser()
 CFG.read(os.path.expanduser(os.path.dirname(__file__) + '/pydxcc.cfg'))
 CTYFILES_PATH = os.path.expanduser(CFG.get('CTYFILES', 'path'))
 CTYFILES_URL = CFG.get('CTYFILES', 'url')
+AUTOFETCH_FILES = CFG.getboolean('CTYFILES', 'autofetch')
 
 DEBUG = 3
 TRACE1 = 4
@@ -26,6 +27,8 @@ NODXCC = { 'long': None, 'lat': None, 'valid_to': None, 'utc': None, 'waz': None
 
 def fetch_country_files():
     """Downloads the countryfiles from the cqrlog project"""
+    if VERBOSE >= DEBUG:
+        print('Fetching new countryfiles')
     httpstream = urllib.request.urlopen(CTYFILES_URL)
     ctyfile = tarfile.open(fileobj=httpstream, mode="r|gz")
     ctyfile.extractall(path=CTYFILES_PATH)
@@ -134,21 +137,29 @@ def dxcc2xml(dxcc):
 def dxcc2json(dxcc):
     return json.dumps(dxcc[1])
 
-def init_country_tab(date = None):
+def init_country_tab(date = None, fetch_files = AUTOFETCH_FILES):
     """builds an initial GLOBAL_DXCC_LIST, if date not defined with date from today"""
     if not date:
         date = datetime.utcnow()
         if VERBOSE >= DEBUG:
             print("initializing GLOBAL_DXCC_LIST with date {}".format(date.strftime("%Y-%m-%d")))
+    if fetch_files == True:
+        if VERBOSE >= DEBUG:
+            print("fetching fresh tables")
+        fetch_country_files()
+        process_country_files()
     GLOBAL_DXCC_LIST[date.strftime("%Y-%m-%d")] = date_country_tab(date)
 
-def get_date_country_tab(date):
+def get_date_country_tab(date = None, fetch_files = AUTOFETCH_FILES):
     """returns date-specific country-tab, builds it, if needed"""
     if not date:
         date = datetime.utcnow()
     if not GLOBAL_DXCC_LIST.get(date.strftime("%Y-%m-%d")):
         if VERBOSE >= DEBUG:
             print("{} not found in GLOBAL_DXCC_LIST, adding".format(date.strftime("%Y-%m-%d")))
+        if date.strftime("%Y-%m-%d") == datetime.utcnow().strftime("%Y-%m-%d") and fetch_files == True:
+            fetch_country_files()
+            process_country_files()
         GLOBAL_DXCC_LIST[date.strftime("%Y-%m-%d")] = date_country_tab(date)
     else:
         if VERBOSE >= DEBUG:
