@@ -48,7 +48,8 @@ def pattern_to_regex(patternlist):
     for pattern in patternlist.split(' '):
         if '%' in pattern or '#' in pattern or '=' in pattern:
             pattern = pattern.replace('%', '[A-Z]').replace('#', '[0-9]')
-            pattern += '$'
+            if '=' in pattern:
+                pattern += '$'
         pattern = '^' + pattern
         returnlist.append(pattern)
     return returnlist
@@ -325,5 +326,6 @@ start = timer()
 print(call2dxcc('DL/ZL1IO', None))
 print(call2dxcc('DP1POL', None))
 print(dxcc2json(call2dxcc('DL0ABC', None)))
+print(call2dxcc('RP74ABC', None))
 end = timer()
 print(end - start)
