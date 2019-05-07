@@ -216,6 +216,7 @@ def call2dxcc(callsign, date = None):
                 DXCC_LIST[pattern]["callsign"] = ORIGINALCALLSIGN
                 return [pattern, DXCC_LIST[pattern]]
     # check for prefix hits
+    hitdict = {}
     for pattern in prefix_hit_list:
         if VERBOSE >= TRACE1:
             print(pattern)
@@ -224,7 +225,12 @@ def call2dxcc(callsign, date = None):
             if VERBOSE >= DEBUG:
                 print("found {} {}".format(pattern, DXCC_LIST[pattern]))
             DXCC_LIST[pattern]["callsign"] = ORIGINALCALLSIGN
-            return [pattern, DXCC_LIST[pattern]]
+            # There could be multiple prefixes (FW, F for example)
+            hitdict[pattern] = DXCC_LIST[pattern]
+    if hitdict:
+        # get and return longtest hit (FW takes precedence over F)
+        longestpattern = max(hitdict.keys())
+        return[longestpattern, hitdict[longestpattern]]
     if VERBOSE >= DEBUG:
         print("no matching dxcc found")
     NODXCC["callsign"] = ORIGINALCALLSIGN
@@ -327,5 +333,6 @@ print(call2dxcc('DL/ZL1IO', None))
 print(call2dxcc('DP1POL', None))
 print(dxcc2json(call2dxcc('DL0ABC', None)))
 print(call2dxcc('RP74ABC', None))
+print(call2dxcc('FW5JG', None))
 end = timer()
 print(end - start)
