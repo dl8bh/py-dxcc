@@ -12,9 +12,6 @@ import tarfile
 import fileinput
 
 
-
-
-
 class dxcc:
     
     GLOBAL_DXCC_LIST = {}
