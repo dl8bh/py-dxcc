@@ -26,8 +26,8 @@ class dxcc:
         self.AUTOFETCH_FILES = AUTOFETCH_FILES
         self.init_country_tab(None)
         self.VERBOSE = VERBOSE
+        self.callsign_cache = {}
     
-
     def fetch_country_files(self):
         """Downloads the countryfiles from the cqrlog project"""
         if self.VERBOSE >= self.DEBUG:
@@ -182,6 +182,15 @@ class dxcc:
             date = datetime.utcnow()
         else:
             date = datetime.strptime(date, "%Y-%m-%d")
+        datestring = date.strftime("%Y-%m-%d")
+        if datestring in self.callsign_cache:
+            datedict = self.callsign_cache[datestring]
+            if callsign in datedict:
+                if self.VERBOSE >= self.DEBUG:
+                        print("cache hit: {} {}".format(datedict[callsign]["pattern"], datedict[callsign]["entry"]))
+                return [datedict[callsign]["pattern"], datedict[callsign]["entry"]]
+        else:
+            self.callsign_cache[datestring] = {}
         direct_hit_list = {}
         prefix_hit_list = {}
         regex_hit_list = OrderedDict()
@@ -203,6 +212,7 @@ class dxcc:
                 if self.VERBOSE >= self.DEBUG:
                     print("found direct hit {} {}".format(pattern, DXCC_LIST[pattern]))
                 DXCC_LIST[pattern]["callsign"] = ORIGINALCALLSIGN
+                self.callsign_cache[datestring][ORIGINALCALLSIGN] = {"pattern": pattern, "entry": DXCC_LIST[pattern]}
                 return [pattern, DXCC_LIST[pattern]]
         # check for portable calls, after testing for direct hits
         if '/' in callsign:
@@ -221,6 +231,7 @@ class dxcc:
                     if self.VERBOSE >= self.DEBUG:
                         print("found {} {}".format(pattern, DXCC_LIST[pattern]))
                     DXCC_LIST[pattern]["callsign"] = ORIGINALCALLSIGN
+                    self.callsign_cache[datestring][ORIGINALCALLSIGN] = {"pattern": pattern, "entry": DXCC_LIST[pattern]}
                     return [pattern, DXCC_LIST[pattern]]
         # check for prefix hits
         hitdict = {}
@@ -237,10 +248,12 @@ class dxcc:
         if hitdict:
             # get and return longtest hit (FW takes precedence over F)
             longestpattern = max(hitdict.keys())
+            self.callsign_cache[datestring][ORIGINALCALLSIGN] = {"pattern": longestpattern, "entry": hitdict[longestpattern]}
             return[longestpattern, hitdict[longestpattern]]
         if self.VERBOSE >= self.DEBUG:
             print("no matching dxcc found")
         self.NODXCC["callsign"] = ORIGINALCALLSIGN
+        self.callsign_cache[datestring][ORIGINALCALLSIGN] = {"pattern": None, "entry": self.NODXCC}
         return[None, self.NODXCC]
     
     def handleExtendedCalls(self, callsign):
