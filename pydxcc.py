@@ -309,7 +309,10 @@ class dxcc:
                     return prefix
                 else:
                     return prefix
-    
+            if len(prefix) > len(suffix):
+                return prefix
+            else:
+                return suffix
         elif len(callsign_parts) == 3:
             if self.VERBOSE >= self.DEBUG:
                 print('callsign has 3 parts')
