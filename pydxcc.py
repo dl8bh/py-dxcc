@@ -51,8 +51,7 @@ class dxcc:
         for pattern in patternlist.split(' '):
             if '%' in pattern or '#' in pattern or '=' in pattern:
                 pattern = pattern.replace('%', '[A-Z]').replace('#', '[0-9]')
-                if '=' in pattern:
-                    pattern += '$'
+                pattern += '$'
             pattern = '^' + pattern
             returnlist.append(pattern)
         return returnlist
